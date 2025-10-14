@@ -1,3 +1,5 @@
+import org.gradle.api.JavaVersion
+
 plugins {
     id("com.android.application")
     kotlin("android")
@@ -28,7 +30,23 @@ android {
     buildFeatures { compose = true; buildConfig = true }
     composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
 
+    // 🔧 Asegura Java 17 en javac
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    // 🔧 Asegura JVM 17 en Kotlin (incluye KSP)
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     packaging { resources { excludes += setOf("META-INF/**") } }
+}
+
+// 🔧 Fuerza toolchain de Kotlin a Java 17
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
