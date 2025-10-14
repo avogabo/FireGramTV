@@ -1,0 +1,3 @@
+-keep class com.google.android.exoplayer2.** { *; }
+-keep class kotlinx.coroutines.** { *; }
+-dontwarn org.conscrypt.**
