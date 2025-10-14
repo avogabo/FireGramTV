@@ -16,9 +16,9 @@ class BotSearcher(private val context: Context) {
     private val mutex = Mutex()
     private val index = mutableListOf<Pair<String, Pair<String, Long>>>() // (caption -> (url, size))
 
-    private val rexPart = Regex("(?i)(?:part|pt|cd|disc)[\s._-]*([0-9]+)")
-    private val rexEpisode1 = Regex("S(\d{2})E(\d{2})", RegexOption.IGNORE_CASE)
-    private val rexEpisode2 = Regex("(\d{2})x(\d{2})", RegexOption.IGNORE_CASE)
+    private val rexPart = Regex("(?i)(?:part|pt|cd|disc)[\\s._-]*([0-9]+)")
+    private val rexEpisode1 = Regex("S(\\d{2})E(\\d{2})", RegexOption.IGNORE_CASE)
+    private val rexEpisode2 = Regex("(\\d{2})x(\\d{2})", RegexOption.IGNORE_CASE)
 
     suspend fun refreshIndex(): Int {
         val repo = SettingsRepo(context)
