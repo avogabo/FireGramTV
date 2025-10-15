@@ -51,15 +51,21 @@ kotlin {
 
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.09.02"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.ui:ui:1.7.2")
+    implementation("androidx.compose.ui:ui-text:1.7.2")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.7.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.compose.material3:material3:1.3.0")
     implementation("androidx.navigation:navigation-compose:2.8.3")
+    implementation("androidx.compose.foundation:foundation:1.7.2")
+    implementation("androidx.compose.runtime:runtime-livedata:1.7.2")
 
     implementation("com.google.android.exoplayer:exoplayer:2.19.1")
     implementation("com.google.android.exoplayer:extension-mediasession:2.19.1")
+
+    implementation("androidx.tv:tv-foundation:1.0.0-alpha10")
+    implementation("androidx.tv:tv-material:1.0.0-alpha10")
 
     implementation("io.coil-kt:coil-compose:2.7.0")
 
@@ -69,6 +75,7 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.25")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
