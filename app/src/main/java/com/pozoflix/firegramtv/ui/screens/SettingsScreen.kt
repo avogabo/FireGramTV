@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.key
@@ -20,26 +19,30 @@ fun SettingsScreen(
     var password by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.padding(16.dp)) {
+
+        // Campo de usuario
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
             label = { Text("Username") },
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+            keyboardOptions = KeyboardOptions.Default,
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Campo de contraseña
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+            keyboardOptions = KeyboardOptions.Default,
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Botones
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onBack, modifier = Modifier.weight(1f)) {
                 Text("Back")
@@ -51,10 +54,11 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Lista de canales
         val channels = listOf(
             Channel(1, "General"),
             Channel(2, "Sports"),
-            Channel(3, "Movies"),
+            Channel(3, "Movies")
         )
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -63,9 +67,8 @@ fun SettingsScreen(
             }
         }
 
-        // Ejemplo de uso correcto de key con IntArray
+        // Ejemplo correcto de key con IntArray
         val myIntArray = intArrayOf(1, 2, 3)
-
         key(myIntArray.contentHashCode()) {
             myIntArray.forEach { v ->
                 Text(text = "Valor: $v")
@@ -82,4 +85,3 @@ fun ChannelRow(channel: Channel) {
         Text(text = channel.name)
     }
 }
-
