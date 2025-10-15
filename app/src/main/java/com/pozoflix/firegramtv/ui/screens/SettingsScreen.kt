@@ -3,6 +3,9 @@ package com.pozoflix.firegramtv.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.focusable // ✅ focusable está en foundation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -13,20 +16,17 @@ import com.pozoflix.firegramtv.data.SettingsRepo
 import com.pozoflix.firegramtv.telegram.BotSearcher
 import kotlinx.coroutines.launch
 
-// 🔽 imports para TV/DPAD
+// 🔽 DPAD/teclado & foco
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusable
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.text.input.KeyboardOptions
 
 @Composable
@@ -60,20 +60,6 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
     val frNewType = remember { FocusRequester() }
     val frAddChannel = remember { FocusRequester() }
 
-    fun Modifier.tvFocusable(): Modifier = this
-        .focusRequester(frTmdb) // se cambia luego por el FR que toque
-        .focusable()
-        .onPreviewKeyEvent { ev ->
-            if (ev.type == KeyEventType.KeyDown) {
-                when (ev.key) {
-                    Key.DirectionDown -> { fm.moveFocus(FocusDirection.Down); true }
-                    Key.DirectionUp -> { fm.moveFocus(FocusDirection.Up); true }
-                    Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
-                    else -> false
-                }
-            } else false
-        }
-
     Column(
         Modifier
             .padding(24.dp)
@@ -94,7 +80,7 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
                 .fillMaxWidth()
                 .focusRequester(frTmdb)
                 .focusable()
-                .onPreviewKeyEvent { ev ->
+                .onPreviewKeyEvent { ev: KeyEvent ->
                     if (ev.type == KeyEventType.KeyDown) {
                         when (ev.key) {
                             Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
@@ -116,7 +102,7 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
                 .fillMaxWidth()
                 .focusRequester(frBot)
                 .focusable()
-                .onPreviewKeyEvent { ev ->
+                .onPreviewKeyEvent { ev: KeyEvent ->
                     if (ev.type == KeyEventType.KeyDown) {
                         when (ev.key) {
                             Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
@@ -139,7 +125,7 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
                 modifier = Modifier
                     .focusRequester(frSave)
                     .focusable()
-                    .onPreviewKeyEvent { ev ->
+                    .onPreviewKeyEvent { ev: KeyEvent ->
                         if (ev.type == KeyEventType.KeyDown && ev.key == Key.DirectionDown) {
                             fm.moveFocus(FocusDirection.Down); true
                         } else false
@@ -167,14 +153,18 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
             ) { Text("Actualizar índice (Bot)") }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
             Text("Actualizar índice al iniciar")
             Switch(
                 checked = autoRefresh,
-                onCheckedChange = { v ->
+                onCheckedChange = { v: Boolean ->
                     autoRefresh = v
                     scope.launch { repo.setAutoRefresh(v) }
-                }
+                },
+                modifier = Modifier.focusable()
             )
         }
 
@@ -197,7 +187,7 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
                     .weight(1f)
                     .focusRequester(frNewName)
                     .focusable()
-                    .onPreviewKeyEvent { ev ->
+                    .onPreviewKeyEvent { ev: KeyEvent ->
                         if (ev.type == KeyEventType.KeyDown) {
                             when (ev.key) {
                                 Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
@@ -216,7 +206,7 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
                     .weight(1f)
                     .focusRequester(frNewId)
                     .focusable()
-                    .onPreviewKeyEvent { ev ->
+                    .onPreviewKeyEvent { ev: KeyEvent ->
                         if (ev.type == KeyEventType.KeyDown) {
                             when (ev.key) {
                                 Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
@@ -235,7 +225,7 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
                     .weight(1f)
                     .focusRequester(frNewType)
                     .focusable()
-                    .onPreviewKeyEvent { ev ->
+                    .onPreviewKeyEvent { ev: KeyEvent ->
                         if (ev.type == KeyEventType.KeyDown) {
                             when (ev.key) {
                                 Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
@@ -277,6 +267,6 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
         Text("Añade el bot como ADMIN en esos canales para que reciba posts nuevos.")
     }
 
-    // 🔰 Al entrar en la pantalla, damos el foco al primer campo
+    // 🔰 Enfoque inicial
     LaunchedEffect(Unit) { frTmdb.requestFocus() }
 }
