@@ -12,7 +12,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.key
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(
+    onBack: () -> Unit = {},
+    onRefreshIndex: () -> Unit = {}
+) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -37,8 +40,13 @@ fun SettingsScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = { /* Save action */ }, modifier = Modifier.fillMaxWidth()) {
-            Text("Save Settings")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onBack, modifier = Modifier.weight(1f)) {
+                Text("Back")
+            }
+            Button(onClick = onRefreshIndex, modifier = Modifier.weight(1f)) {
+                Text("Refresh Index")
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -74,3 +82,4 @@ fun ChannelRow(channel: Channel) {
         Text(text = channel.name)
     }
 }
+
