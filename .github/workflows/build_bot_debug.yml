@@ -1,75 +1,272 @@
-name: Build FireGramTV (BOT Debug) — stable
+package com.pozoflix.firegramtv.ui.screens
 
-on:
-  workflow_dispatch:
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.pozoflix.firegramtv.data.ChannelCfg
+import com.pozoflix.firegramtv.data.SettingsRepo
+import com.pozoflix.firegramtv.telegram.BotSearcher
+import kotlinx.coroutines.launch
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      GRADLE_USER_HOME: ~/.gradle
-      JAVA_TOOL_OPTIONS: -Xmx3g
+// DPAD & foco
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+// ✅ KeyboardOptions va en foundation.text (ojo: no usar ui.text.input)
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
+@Composable
+fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
+    val ctx = LocalContext.current
+    val repo = remember { SettingsRepo(ctx) }
+    val scope = rememberCoroutineScope()
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+    var tmdb by remember { mutableStateOf("") }
+    var botToken by remember { mutableStateOf("") }
+    var channels by remember { mutableStateOf(listOf<ChannelCfg>()) }
+    var lastAdd by remember { mutableStateOf(0) }
+    var autoRefresh by remember { mutableStateOf(true) }
 
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses || true
+    LaunchedEffect(Unit) { repo.tmdbKey.collect { tmdb = it ?: "" } }
+    LaunchedEffect(Unit) { repo.botToken.collect { botToken = it ?: "" } }
+    LaunchedEffect(Unit) { repo.channels.collect { channels = it } }
+    LaunchedEffect(Unit) { repo.autoRefresh.collect { autoRefresh = it } }
 
-      - name: Install SDK packages
-        run: |
-          sdkmanager --install "platform-tools" "build-tools;34.0.0" "platforms;android-34" "cmdline-tools;latest"
-          sdkmanager --list | head -n 50
+    // Foco para TV
+    val fm = LocalFocusManager.current
+    val frTmdb = remember { FocusRequester() }
+    val frBot = remember { FocusRequester() }
+    val frSave = remember { FocusRequester() }
+    val frBack = remember { FocusRequester() }
+    val frUpdate = remember { FocusRequester() }
+    val frNewName = remember { FocusRequester() }
+    val frNewId = remember { FocusRequester() }
+    val frNewType = remember { FocusRequester() }
+    val frAddChannel = remember { FocusRequester() }
 
-      # Nuevo action (sustituye al deprecado gradle/gradle-build-action)
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.9
-          cache-disabled: false
-          cache-read-only: false
+    Column(
+        Modifier
+            .padding(24.dp)
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Ajustes (BOT)", style = MaterialTheme.typography.headlineSmall)
 
-      - name: Gradle version (sanity check)
-        run: gradle -v
+        // TMDB
+        OutlinedTextField(
+            value = tmdb,
+            onValueChange = { tmdb = it },
+            label = { Text("TMDB API Key") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(frTmdb)
+                .focusable()
+                .onPreviewKeyEvent { ev: KeyEvent ->
+                    if (ev.type == KeyEventType.KeyDown) {
+                        when (ev.key) {
+                            Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
+                            Key.DirectionUp -> { fm.moveFocus(FocusDirection.Up); true }
+                            else -> false
+                        }
+                    } else false
+                }
+        )
 
-      # Calienta configuración (sin configuration cache)
-      - name: Gradle help (warm)
-        run: gradle -q help --no-daemon --no-configuration-cache
+        // Bot token
+        OutlinedTextField(
+            value = botToken,
+            onValueChange = { botToken = it },
+            label = { Text("Bot Token (BotFather)") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(frBot)
+                .focusable()
+                .onPreviewKeyEvent { ev: KeyEvent ->
+                    if (ev.type == KeyEventType.KeyDown) {
+                        when (ev.key) {
+                            Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
+                            Key.DirectionUp -> { fm.moveFocus(FocusDirection.Up); true }
+                            else -> false
+                        }
+                    } else false
+                }
+        )
 
-      # Compila Kotlin primero para que los errores salgan claros
-      - name: Compile Kotlin (debug)
-        run: gradle :app:compileDebugKotlin --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2
+        // Botonera principal
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = {
+                    scope.launch {
+                        repo.saveTmdbKey(tmdb)
+                        repo.saveBotToken(botToken)
+                    }
+                },
+                modifier = Modifier
+                    .focusRequester(frSave)
+                    .focusable()
+                    .onPreviewKeyEvent { ev: KeyEvent ->
+                        if (ev.type == KeyEventType.KeyDown && ev.key == Key.DirectionDown) {
+                            fm.moveFocus(FocusDirection.Down); true
+                        } else false
+                    }
+            ) { Text("Guardar") }
 
-      # Compila Java
-      - name: Compile Java (debug)
-        run: gradle :app:compileDebugJavaWithJavac --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .focusRequester(frBack)
+                    .focusable()
+            ) { Text("Volver") }
 
-      # Resources/AAPT (muestra logs claros si hay fallo de recursos)
-      - name: Merge/Process resources
-        run: |
-          gradle :app:mergeDebugResources --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2
-          gradle :app:processDebugResources --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2
+            Button(
+                onClick = {
+                    scope.launch {
+                        val added = BotSearcher(ctx).refreshIndex()
+                        lastAdd = added
+                        onRefreshIndex()
+                    }
+                },
+                modifier = Modifier
+                    .focusRequester(frUpdate)
+                    .focusable()
+            ) { Text("Actualizar índice (Bot)") }
+        }
 
-      # APK final
-      - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            Text("Actualizar índice al iniciar")
+            Switch(
+                checked = autoRefresh,
+                onCheckedChange = { v: Boolean ->
+                    autoRefresh = v
+                    scope.launch { repo.setAutoRefresh(v) }
+                },
+                modifier = Modifier.focusable()
+            )
+        }
 
-      - name: List APKs
-        run: find app/build/outputs/apk -name "*.apk" -print
+        if (lastAdd > 0) Text("Añadidos $lastAdd elementos nuevos.")
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: FireGramTV-bot-debug
-          path: app/build/outputs/apk/debug/*.apk
+        Spacer(Modifier.height(8.dp))
+        Text("Canales de Telegram")
+
+        var newName by remember { mutableStateOf("") }
+        var newChatId by remember { mutableStateOf("") }
+        var newType by remember { mutableStateOf("MIXED") }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = newName,
+                onValueChange = { newName = it },
+                label = { Text("Nombre") },
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(frNewName)
+                    .focusable()
+                    .onPreviewKeyEvent { ev: KeyEvent ->
+                        if (ev.type == KeyEventType.KeyDown) {
+                            when (ev.key) {
+                                Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
+                                Key.DirectionUp -> { fm.moveFocus(FocusDirection.Up); true }
+                                else -> false
+                            }
+                        } else false
+                    }
+            )
+            OutlinedTextField(
+                value = newChatId,
+                onValueChange = { newChatId = it },
+                label = { Text("chat_id") },
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(frNewId)
+                    .focusable()
+                    .onPreviewKeyEvent { ev: KeyEvent ->
+                        if (ev.type == KeyEventType.KeyDown) {
+                            when (ev.key) {
+                                Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
+                                Key.DirectionUp -> { fm.moveFocus(FocusDirection.Up); true }
+                                else -> false
+                            }
+                        } else false
+                    }
+            )
+            OutlinedTextField(
+                value = newType,
+                onValueChange = { newType = it },
+                label = { Text("Tipo (MOVIE/TV/MIXED)") },
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(frNewType)
+                    .focusable()
+                    .onPreviewKeyEvent { ev: KeyEvent ->
+                        if (ev.type == KeyEventType.KeyDown) {
+                            when (ev.key) {
+                                Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
+                                Key.DirectionUp -> { fm.moveFocus(FocusDirection.Up); true }
+                                else -> false
+                            }
+                        } else false
+                    }
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = {
+                    newChatId.toLongOrNull()?.let { id ->
+                        val list = channels + ChannelCfg(newName.ifBlank { id.toString() }, id, newType.uppercase())
+                        scope.launch { repo.saveChannels(list) }
+                        newName = ""; newChatId = ""; newType = "MIXED"
+                    }
+                },
+                modifier = Modifier
+                    .focusRequester(frAddChannel)
+                    .focusable()
+            ) { Text("Añadir canal") }
+
+            if (channels.isNotEmpty()) {
+                Button(onClick = { scope.launch { repo.saveChannels(emptyList()) } }) { Text("Vaciar lista") }
+            }
+        }
+
+        LazyColumn {
+            items(channels) { ch ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("${ch.name} • ${ch.chatId} • ${ch.type}")
+                }
+            }
+        }
+
+        Text("Añade el bot como ADMIN en esos canales para que reciba posts nuevos.")
+    }
+
+    // foco inicial
+    LaunchedEffect(Unit) { frTmdb.requestFocus() }
+}
