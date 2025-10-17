@@ -60,11 +60,11 @@ android {
 // Toolchain 17
 kotlin { jvmToolchain(17) }
 
-// ⚠️ Botón rojo: suprime el check de compatibilidad del Compose Compiler (solo para desatascar)
+// ⚠️ Suprime el check de compatibilidad del Compose Compiler indicando versión
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     kotlinOptions.freeCompilerArgs += listOf(
         "-P",
-        "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
+        "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=1.9.25"
     )
 }
 
