@@ -33,7 +33,7 @@ jobs:
 
       - name: Install SDK packages
         run: |
-          sdkmanager --install "platform-tools" "build-tools;34.0.0" "platforms;android-34" "cmdline-tools;latest"
+          sdkmanager --install "platform-tools" "build-tools;34.0.0" "platforms;android-35" "cmdline-tools;latest"
           sdkmanager --list | head -n 50
 
       - name: Setup Gradle
@@ -44,47 +44,60 @@ jobs:
       - name: Gradle version (sanity check)
         run: gradle -v
 
-      # Limpieza para evitar restos que oculten errores
+      - name: Prepare logs dir
+        run: mkdir -p artifacts/logs
+
       - name: Clean
-        run: gradle clean --no-daemon --no-configuration-cache
+        run: |
+          set -o pipefail
+          gradle clean --no-daemon --no-configuration-cache --console=plain 2>&1 | tee artifacts/logs/00_clean.log
 
-      # Warm (sin configuration cache)
       - name: Gradle help (warm)
-        run: gradle -q help --no-daemon --no-configuration-cache
+        run: |
+          set -o pipefail
+          gradle -q help --no-daemon --no-configuration-cache --console=plain 2>&1 | tee artifacts/logs/01_help.log
 
-      # Compila Kotlin primero (si falla, veremos el error real)
+      # Compila Kotlin primero. Capturamos todo el output a un .log
       - name: Compile Kotlin (debug)
-        run: gradle :app:compileDebugKotlin --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2
-
-      # Subir logs del compilador Kotlin si existen (para diagnóstico)
-      - name: Upload Kotlin compiler logs (if any)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kotlin-compiler-logs
-          path: |
-            app/build/reports/**
-            app/build/tmp/kotlin-classes/**
-          if-no-files-found: ignore
+        run: |
+          set -o pipefail
+          gradle :app:compileDebugKotlin --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2 --console=plain 2>&1 | tee artifacts/logs/10_compileDebugKotlin.log
 
       # Compila Java
       - name: Compile Java (debug)
-        run: gradle :app:compileDebugJavaWithJavac --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2
+        run: |
+          set -o pipefail
+          gradle :app:compileDebugJavaWithJavac --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2 --console=plain 2>&1 | tee artifacts/logs/11_compileDebugJava.log
 
       # Resources/AAPT
       - name: Merge/Process resources
         run: |
-          gradle :app:mergeDebugResources --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2
-          gradle :app:processDebugResources --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2
+          set -o pipefail
+          gradle :app:mergeDebugResources --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2 --console=plain 2>&1 | tee artifacts/logs/12_mergeDebugResources.log
+          gradle :app:processDebugResources --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2 --console=plain 2>&1 | tee artifacts/logs/13_processDebugResources.log
 
       # APK final
       - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2 --console=plain 2>&1 | tee artifacts/logs/20_assembleDebug.log
 
       - name: List APKs
         run: find app/build/outputs/apk -name "*.apk" -print
 
+      # 🔼 Subimos SIEMPRE los logs y, si existen, logs del daemon de Gradle
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            artifacts/logs/**
+            $HOME/.gradle/daemon/**/daemon-*.out.log
+          if-no-files-found: warn
+
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: FireGramTV-bot-debug
