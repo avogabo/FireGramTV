@@ -20,16 +20,15 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalFocusManager
 
-// ✅ IMPORTS CORRECTOS (no usar foundation.text.*)
+// ✅ imports correctos en Compose 1.5.x
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardOptions
 
 @Composable
 fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
@@ -60,6 +59,18 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
     val frNewType = remember { FocusRequester() }
     val frAddChannel = remember { FocusRequester() }
 
+    // Helper para DPAD usando keyCode nativo → evita conflicto con compose.runtime.key
+    fun dpadHandler(moveUp: Boolean? = null): (KeyEvent) -> Boolean = { e ->
+        if (e.type == KeyEventType.KeyDown) {
+            val kc = e.nativeKeyEvent.keyCode
+            when {
+                moveUp == true && kc == android.view.KeyEvent.KEYCODE_DPAD_UP -> { fm.moveFocus(FocusDirection.Up); true }
+                moveUp == false && (kc == android.view.KeyEvent.KEYCODE_DPAD_DOWN || kc == android.view.KeyEvent.KEYCODE_TAB) -> { fm.moveFocus(FocusDirection.Down); true }
+                else -> false
+            }
+        } else false
+    }
+
     Column(
         Modifier
             .padding(24.dp)
@@ -80,15 +91,7 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
                 .fillMaxWidth()
                 .focusRequester(frTmdb)
                 .focusable()
-                .onPreviewKeyEvent { ev: KeyEvent ->
-                    if (ev.type == KeyEventType.KeyDown) {
-                        when (ev.key) {
-                            Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
-                            Key.DirectionUp -> { fm.moveFocus(FocusDirection.Up); true }
-                            else -> false
-                        }
-                    } else false
-                }
+                .onPreviewKeyEvent(dpadHandler(false))
         )
 
         // Bot token
@@ -102,15 +105,7 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
                 .fillMaxWidth()
                 .focusRequester(frBot)
                 .focusable()
-                .onPreviewKeyEvent { ev: KeyEvent ->
-                    if (ev.type == KeyEventType.KeyDown) {
-                        when (ev.key) {
-                            Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
-                            Key.DirectionUp -> { fm.moveFocus(FocusDirection.Up); true }
-                            else -> false
-                        }
-                    } else false
-                }
+                .onPreviewKeyEvent(dpadHandler(false))
         )
 
         // Botonera principal
@@ -125,11 +120,7 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
                 modifier = Modifier
                     .focusRequester(frSave)
                     .focusable()
-                    .onPreviewKeyEvent { ev: KeyEvent ->
-                        if (ev.type == KeyEventType.KeyDown && ev.key == Key.DirectionDown) {
-                            fm.moveFocus(FocusDirection.Down); true
-                        } else false
-                    }
+                    .onPreviewKeyEvent(dpadHandler(false))
             ) { Text("Guardar") }
 
             OutlinedButton(
@@ -160,7 +151,7 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
             Text("Actualizar índice al iniciar")
             Switch(
                 checked = autoRefresh,
-                onCheckedChange = { v: Boolean ->
+                onCheckedChange = { v ->
                     autoRefresh = v
                     scope.launch { repo.setAutoRefresh(v) }
                 },
@@ -183,38 +174,24 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
                 onValueChange = { newName = it },
                 label = { Text("Nombre") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 modifier = Modifier
                     .weight(1f)
                     .focusRequester(frNewName)
                     .focusable()
-                    .onPreviewKeyEvent { ev: KeyEvent ->
-                        if (ev.type == KeyEventType.KeyDown) {
-                            when (ev.key) {
-                                Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
-                                Key.DirectionUp -> { fm.moveFocus(FocusDirection.Up); true }
-                                else -> false
-                            }
-                        } else false
-                    }
+                    .onPreviewKeyEvent(dpadHandler(false))
             )
             OutlinedTextField(
                 value = newChatId,
                 onValueChange = { newChatId = it },
                 label = { Text("chat_id") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 modifier = Modifier
                     .weight(1f)
                     .focusRequester(frNewId)
                     .focusable()
-                    .onPreviewKeyEvent { ev: KeyEvent ->
-                        if (ev.type == KeyEventType.KeyDown) {
-                            when (ev.key) {
-                                Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
-                                Key.DirectionUp -> { fm.moveFocus(FocusDirection.Up); true }
-                                else -> false
-                            }
-                        } else false
-                    }
+                    .onPreviewKeyEvent(dpadHandler(false))
             )
             OutlinedTextField(
                 value = newType,
@@ -225,15 +202,7 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
                     .weight(1f)
                     .focusRequester(frNewType)
                     .focusable()
-                    .onPreviewKeyEvent { ev: KeyEvent ->
-                        if (ev.type == KeyEventType.KeyDown) {
-                            when (ev.key) {
-                                Key.DirectionDown, Key.Tab -> { fm.moveFocus(FocusDirection.Down); true }
-                                Key.DirectionUp -> { fm.moveFocus(FocusDirection.Up); true }
-                                else -> false
-                            }
-                        } else false
-                    }
+                    .onPreviewKeyEvent(dpadHandler(false))
             )
         }
 
@@ -267,6 +236,5 @@ fun SettingsScreen(onBack: () -> Unit, onRefreshIndex: () -> Unit) {
         Text("Añade el bot como ADMIN en esos canales para que reciba posts nuevos.")
     }
 
-    // foco inicial
     LaunchedEffect(Unit) { frTmdb.requestFocus() }
 }
