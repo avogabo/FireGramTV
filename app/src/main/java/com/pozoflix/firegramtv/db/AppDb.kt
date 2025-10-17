@@ -2,6 +2,7 @@ package com.pozoflix.firegramtv.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
 @Database(entities = [MediaProgress::class, Favorite::class], version = 1)
 abstract class AppDb : RoomDatabase() {
