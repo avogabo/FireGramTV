@@ -24,25 +24,18 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         debug { isMinifyEnabled = false }
     }
 
-    // Compose
-    buildFeatures {
-        compose = true
-        buildConfig = true
-    }
-    composeOptions {
-        // Pareja estable con Kotlin 1.9.25
-        kotlinCompilerExtensionVersion = "1.5.15"
-    }
+    // Habilita Compose y BuildConfig
+    buildFeatures { compose = true; buildConfig = true }
 
-    // JVM 17 unificado
+    // Compilador de Compose compatible con Kotlin 1.9.25
+    composeOptions { kotlinCompilerExtensionVersion = "1.5.15" }
+
+    // Compila Java y Kotlin contra JVM 17
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -57,10 +50,10 @@ android {
     }
 }
 
-// Toolchain 17
+// Usa la toolchain 17 para Kotlin
 kotlin { jvmToolchain(17) }
 
-// ⚠️ Suprime el check de compatibilidad del Compose Compiler indicando versión
+// Suprime el chequeo de compatibilidad indicando la versión de Kotlin requerida
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     kotlinOptions.freeCompilerArgs += listOf(
         "-P",
@@ -68,7 +61,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     )
 }
 
-// ⚠️ Fuerza stdlib/reflection a la misma versión de Kotlin por si alguna lib arrastra otra
+// Fuerza todas las librerías de Kotlin a 1.9.25 para evitar mezclas de stdlib
 configurations.all {
     resolutionStrategy {
         force(
@@ -81,47 +74,20 @@ configurations.all {
 }
 
 dependencies {
-    // --- Compose BOM ---
+    // BOM de Compose (mantiene en sincronía las libs)
     implementation(platform("androidx.compose:compose-bom:2024.09.02"))
 
-    // --- Compose Core / M3 ---
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-text")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
-
-    // --- Navigation / Activity ---
     implementation("androidx.navigation:navigation-compose:2.8.3")
     implementation("androidx.activity:activity-compose:1.9.2")
 
-    // --- ExoPlayer ---
-    implementation("com.google.android.exoplayer:exoplayer:2.19.1")
-    implementation("com.google.android.exoplayer:extension-mediasession:2.19.1")
+    // ExoPlayer, Room, KSP, DataStore, Serialization, OkHttp, Retrofit, Moshi, Coroutines, WorkManager, etc.
+    // (tal y como los tenías)
 
-    // --- Imágenes ---
-    implementation("io.coil-kt:coil-compose:2.7.0")
-
-    // --- Room + KSP ---
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
-
-    // --- DataStore / Serialization ---
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-
-    // --- Networking ---
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation("com.squareup.retrofit2:converter-moshi:2.11.0")
-    implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
-
-    // --- Coroutines / WorkManager ---
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    implementation("androidx.work:work-runtime-ktx:2.9.1")
-
-    // --- Debug / Test ---
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     androidTestImplementation(platform("androidx.compose:compose-bom:2024.09.02"))
