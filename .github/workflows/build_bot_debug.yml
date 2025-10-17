@@ -44,13 +44,28 @@ jobs:
       - name: Gradle version (sanity check)
         run: gradle -v
 
+      # Limpieza para evitar restos que oculten errores
+      - name: Clean
+        run: gradle clean --no-daemon --no-configuration-cache
+
       # Warm (sin configuration cache)
       - name: Gradle help (warm)
         run: gradle -q help --no-daemon --no-configuration-cache
 
-      # Compila Kotlin primero (logs claros)
+      # Compila Kotlin primero (si falla, veremos el error real)
       - name: Compile Kotlin (debug)
         run: gradle :app:compileDebugKotlin --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2
+
+      # Subir logs del compilador Kotlin si existen (para diagnóstico)
+      - name: Upload Kotlin compiler logs (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-compiler-logs
+          path: |
+            app/build/reports/**
+            app/build/tmp/kotlin-classes/**
+          if-no-files-found: ignore
 
       # Compila Java
       - name: Compile Java (debug)
