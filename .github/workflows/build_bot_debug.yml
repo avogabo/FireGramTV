@@ -3,9 +3,7 @@ name: Build FireGramTV (BOT Debug) stable
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - master
+    branches: [ main, master ]
 
 jobs:
   build:
@@ -41,6 +39,9 @@ jobs:
         with:
           gradle-version: 8.9
 
+      - name: Gradle version (sanity check)
+        run: gradle -v
+
       - name: Prepare logs dir
         run: mkdir -p artifacts/logs
 
@@ -48,41 +49,28 @@ jobs:
         run: |
           set -o pipefail
           gradle clean --no-daemon --no-configuration-cache --console=plain 2>&1 | tee artifacts/logs/00_clean.log
-  
-      - name: Gradle version (sanity check)
-        run: gradle -v
 
-
-      - name: Clean
-        run: |
-          set -o pipefail
-          gradle clean --no-daemon --no-configuration-cache --console=plain 2>&1 | tee artifacts/logs/00_clean.log
-
-      - name: Gradle help (warm)
+      - name: Warm (help)
         run: |
           set -o pipefail
           gradle -q help --no-daemon --no-configuration-cache --console=plain 2>&1 | tee artifacts/logs/01_help.log
 
-      # Compila Kotlin primero. Capturamos todo el output a un .log
       - name: Compile Kotlin (debug)
         run: |
           set -o pipefail
           gradle :app:compileDebugKotlin --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2 --console=plain 2>&1 | tee artifacts/logs/10_compileDebugKotlin.log
 
-      # Compila Java
       - name: Compile Java (debug)
         run: |
           set -o pipefail
           gradle :app:compileDebugJavaWithJavac --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2 --console=plain 2>&1 | tee artifacts/logs/11_compileDebugJava.log
 
-      # Resources/AAPT
       - name: Merge/Process resources
         run: |
           set -o pipefail
           gradle :app:mergeDebugResources --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2 --console=plain 2>&1 | tee artifacts/logs/12_mergeDebugResources.log
           gradle :app:processDebugResources --no-daemon --stacktrace --info --no-configuration-cache --build-cache --max-workers=2 --console=plain 2>&1 | tee artifacts/logs/13_processDebugResources.log
 
-      # APK final
       - name: Build Debug APK
         run: |
           set -o pipefail
@@ -91,7 +79,6 @@ jobs:
       - name: List APKs
         run: find app/build/outputs/apk -name "*.apk" -print
 
-      # 🔼 Subimos SIEMPRE los logs y, si existen, logs del daemon de Gradle
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
