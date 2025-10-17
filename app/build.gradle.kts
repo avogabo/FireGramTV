@@ -44,7 +44,7 @@ android {
     }
     composeOptions {
         // Alineado con Kotlin 1.9.24 y Compose BOM 2024.09.02
-        kotlinCompilerExtensionVersion = "1.5.15"
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     // Unifica Java/Kotlin en JVM 17 (evita el error de KSP vs javac)
