@@ -1,8 +1,6 @@
 package com.pozoflix.firegramtv.data
 
 import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -15,15 +13,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 
-// Extensión de Context con tipo (DataStore<Preferences>) y nombre "firegram_prefs"
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "firegram_prefs")
+val Context.dataStore by preferencesDataStore("firegram_prefs")
 
 @Serializable
-data class ChannelCfg(
-    val name: String,
-    val chatId: Long,
-    val type: String = "MIXED"
-)
+data class ChannelCfg(val name: String, val chatId: Long, val type: String = "MIXED")
 
 object Keys {
     val TMDB = stringPreferencesKey("tmdb_key")
@@ -35,30 +28,17 @@ object Keys {
 
 class SettingsRepo(private val ctx: Context) {
     private val json = Json { ignoreUnknownKeys = true }
-
     val tmdbKey: Flow<String?> = ctx.dataStore.data.map { it[Keys.TMDB] }
     val botToken: Flow<String?> = ctx.dataStore.data.map { it[Keys.BOT_TOKEN] }
     val channels: Flow<List<ChannelCfg>> = ctx.dataStore.data.map {
-        it[Keys.CHANNELS]?.let { s ->
-            runCatching { json.decodeFromString<List<ChannelCfg>>(s) }.getOrElse { emptyList() }
-        } ?: emptyList()
+        it[Keys.CHANNELS]?.let { s -> runCatching { json.decodeFromString<List<ChannelCfg>>(s) }.getOrElse { emptyList() } } ?: emptyList()
     }
     val lastUpdateId: Flow<Long> = ctx.dataStore.data.map { it[Keys.LAST_UPDATE_ID] ?: 0L }
     val autoRefresh: Flow<Boolean> = ctx.dataStore.data.map { it[Keys.AUTO_REFRESH] ?: true }
 
-    suspend fun saveTmdbKey(v: String) {
-        ctx.dataStore.edit { it[Keys.TMDB] = v }
-    }
-    suspend fun saveBotToken(v: String) {
-        ctx.dataStore.edit { it[Keys.BOT_TOKEN] = v }
-    }
-    suspend fun saveChannels(list: List<ChannelCfg>) {
-        ctx.dataStore.edit { it[Keys.CHANNELS] = json.encodeToString(list) }
-    }
-    suspend fun setLastUpdateId(v: Long) {
-        ctx.dataStore.edit { it[Keys.LAST_UPDATE_ID] = v }
-    }
-    suspend fun setAutoRefresh(v: Boolean) {
-        ctx.dataStore.edit { it[Keys.AUTO_REFRESH] = v }
-    }
+    suspend fun saveTmdbKey(v: String) = ctx.dataStore.edit { it[Keys.TMDB] = v }
+    suspend fun saveBotToken(v: String) = ctx.dataStore.edit { it[Keys.BOT_TOKEN] = v }
+    suspend fun saveChannels(list: List<ChannelCfg>) = ctx.dataStore.edit { it[Keys.CHANNELS] = json.encodeToString(list) }
+    suspend fun setLastUpdateId(v: Long) = ctx.dataStore.edit { it[Keys.LAST_UPDATE_ID] = v }
+    suspend fun setAutoRefresh(v: Boolean) = ctx.dataStore.edit { it[Keys.AUTO_REFRESH] = v }
 }
