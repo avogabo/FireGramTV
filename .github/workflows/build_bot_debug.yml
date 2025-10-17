@@ -41,11 +41,17 @@ jobs:
         with:
           gradle-version: 8.9
 
+      - name: Prepare logs dir
+        run: mkdir -p artifacts/logs
+
+      - name: Clean
+        run: |
+          set -o pipefail
+          gradle clean --no-daemon --no-configuration-cache --console=plain 2>&1 | tee artifacts/logs/00_clean.log
+  
       - name: Gradle version (sanity check)
         run: gradle -v
 
-      - name: Prepare logs dir
-        run: mkdir -p artifacts/logs
 
       - name: Clean
         run: |
