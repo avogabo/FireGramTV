@@ -12,8 +12,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 
-val Context.dataStore by preferencesDataStore("firegram_prefs")
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "firegram_prefs")
+
 
 @Serializable
 data class ChannelCfg(val name: String, val chatId: Long, val type: String = "MIXED")
